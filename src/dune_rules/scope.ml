@@ -128,6 +128,7 @@ module DB = struct
           | Some (Found lib) -> Lib.DB.Resolve_result.found lib))
       ~all:(fun () -> Lib_name.Map.keys map |> Memo.return)
       ~lib_config
+      ~kind:Lib.Kind_db.Project_libs
 
   type redirect_to =
     | Project of Dune_project.t
@@ -187,7 +188,7 @@ module DB = struct
     let resolve lib = Memo.return (resolve t public_libs lib) in
     Lib.DB.create ~parent:(Some installed_libs) ~resolve
       ~all:(fun () -> Lib_name.Map.keys public_libs |> Memo.return)
-      ~lib_config ()
+      ~lib_config ~kind:Lib.Kind_db.Public_libs ()
 
   module Path_source_map_traversals = Memo.Make_map_traversals (Path.Source.Map)
 

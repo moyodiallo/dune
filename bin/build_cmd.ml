@@ -55,6 +55,12 @@ let run_build_system ~common ~request =
             ())
       in
       let* res = run ~toplevel in
+      let* ()  =
+        match Common.external_lib_deps common with
+        | Some `Normal -> Fiber.return (Console.print_user_message (Lib_resolved.External_libs.print ()))
+        | Some `Sexp   -> Fiber.return (Console.print_user_message (Lib_resolved.External_libs.sexp ()))
+        | None -> Fiber.return ()
+      in
       let+ () =
         match Common.dump_memo_graph_file common with
         | None -> Fiber.return ()

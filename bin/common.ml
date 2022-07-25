@@ -50,6 +50,7 @@ type t =
   ; report_errors_config : Dune_engine.Report_errors_config.t
   ; require_dune_project_file : bool
   ; insignificant_changes : [ `React | `Ignore ]
+  ; external_lib_deps : [ `Sexp | `Normal ] option
   }
 
 let capture_outputs t = t.capture_outputs
@@ -77,6 +78,8 @@ let rpc t = Lazy.force t.rpc
 let stats t = t.stats
 
 let insignificant_changes t = t.insignificant_changes
+
+let external_lib_deps t = t.external_lib_deps
 
 let set_print_directory t b = { t with no_print_directory = not b }
 
@@ -980,6 +983,14 @@ let term ~default_root_is_cwd =
              $(b,twice) - report each error twice: once as soon as the error \
              is discovered and then again at the end of the build, in a \
              deterministic order.")
+  and+ external_lib_deps =
+    Arg.(
+      value
+      & opt ~vopt:(Some `Normal) (some (enum [("sexp",`Sexp);("normal",`Normal)])) None
+      & info ["external-lib-deps"]
+        ~doc:
+            "Print all resolved external dependency libraries. \
+            $(b,--external-lib-deps=sexp) - to print in S-expression format")
   and+ react_to_insignificant_changes =
     Arg.(
       value & flag
@@ -1047,6 +1058,7 @@ let term ~default_root_is_cwd =
   ; report_errors_config
   ; require_dune_project_file
   ; insignificant_changes
+  ; external_lib_deps
   }
 
 let term_with_default_root_is_cwd = term ~default_root_is_cwd:true

@@ -71,6 +71,8 @@ val build_info : unit Cmdliner.Term.t
 
 val default_build_dir : string
 
+val external_lib_deps : t -> [ `Sexp | `Normal ] option
+
 module Let_syntax : sig
   val ( let+ ) : 'a Cmdliner.Term.t -> ('a -> 'b) -> 'b Cmdliner.Term.t
 

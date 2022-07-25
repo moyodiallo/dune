@@ -41,6 +41,10 @@ val hash : t -> int
 
 val project : t -> Dune_project.t option
 
+module Kind_db : sig
+  type t = Installed_libs | Public_libs | Project_libs
+end
+
 (** Operations on list of libraries *)
 module L : sig
   val top_closure :
@@ -124,6 +128,7 @@ module DB : sig
     -> resolve:(Lib_name.t -> Resolve_result.t Memo.t)
     -> all:(unit -> Lib_name.t list Memo.t)
     -> lib_config:Lib_config.t
+    -> kind: Kind_db.t
     -> unit
     -> t
 

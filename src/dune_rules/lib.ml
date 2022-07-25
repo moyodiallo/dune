@@ -369,12 +369,17 @@ module Status = struct
     | Found t -> variant "Found" [ to_dyn t ]
 end
 
+module Kind_db = struct
+  type t = Installed_libs | Public_libs | Project_libs
+end
+
 type db =
   { parent : db option
   ; resolve : Lib_name.t -> resolve_result Memo.t
   ; all : Lib_name.t list Memo.Lazy.t
   ; lib_config : Lib_config.t
   ; instrument_with : Lib_name.t list
+  ; kind: Kind_db.t
   }
 
 and resolve_result =
@@ -1037,7 +1042,12 @@ end = struct
 
   let instantiate db name info ~hidden = Memo.exec memo (db, name, info, hidden)
 
-  let find_internal db (name : Lib_name.t) = resolve_name db name
+  let find_internal db (name : Lib_name.t) =
+    let () =
+      match db.kind with
+      | Kind_db.Installed_libs -> Lib_resolved.External_libs.add db.lib_config.context_name name
+      | _ -> ()
+    in resolve_name db name
 
   let resolve_dep db (loc, name) ~private_deps : t Resolve.Memo.t =
     let open Memo.O in
@@ -1177,6 +1187,9 @@ end = struct
       { resolved; selects; re_exports }
   end
 
+  let set_external_libs_kind db name kind =
+    Lib_resolved.External_libs.set db.lib_config.context_name name kind
+
   let remove_library deps target =
     List.filter_map deps ~f:(fun (dep : Lib_dep.t) ->
         match dep with
@@ -1211,6 +1224,10 @@ end = struct
                      Lib_name.Set.fold required ~init:[] ~f:(fun x acc ->
                          (loc, x) :: acc)
                    in
+                   let () = List.iter
+                              ~f:(fun lib ->
+                                set_external_libs_kind db (snd lib) Lib_resolved.Kind.Optional) deps
+                   in
                    resolve_simple_deps ~private_deps db deps)
                 >>| function
                 | Ok ts -> Some (ts, file)
@@ -1242,9 +1259,11 @@ end = struct
       Memo.List.fold_left deps ~init:empty ~f:(fun acc dep ->
           match (dep : Lib_dep.t) with
           | Re_export lib ->
+            let () = set_external_libs_kind db (snd lib) Lib_resolved.Kind.Required in
             let+ lib = resolve_dep db lib ~private_deps in
             add_re_exports acc lib
           | Direct lib ->
+            let () = set_external_libs_kind db (snd lib) Lib_resolved.Kind.Required in
             let+ lib = resolve_dep db lib ~private_deps in
             add_resolved acc lib
           | Select select ->
@@ -1691,12 +1710,13 @@ module DB = struct
 
   type t = db
 
-  let create ~parent ~resolve ~all ~lib_config () =
+  let create ~parent ~resolve ~all ~lib_config ~kind () =
     { parent
     ; resolve
     ; all = Memo.lazy_ all
     ; lib_config
     ; instrument_with = lib_config.Lib_config.instrument_with
+    ; kind
     }
 
   let create_from_findlib findlib =
@@ -1716,6 +1736,7 @@ module DB = struct
       ~all:(fun () ->
         let open Memo.O in
         Findlib.all_packages findlib >>| List.map ~f:Dune_package.Entry.name)
+      ~kind:Kind_db.Installed_libs
 
   let installed (context : Context.t) =
     let open Memo.O in
