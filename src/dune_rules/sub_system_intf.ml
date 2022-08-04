@@ -44,7 +44,7 @@ module type Registered_backend = sig
   val get : Lib.t -> t option Memo.t
 
   (** Resolve a backend name *)
-  val resolve : Lib.DB.t -> Loc.t * Lib_name.t -> t Resolve.Memo.t
+  val resolve : Lib.DB.t -> dir:Path.Build.t -> Loc.t * Lib_name.t -> t Resolve.Memo.t
 
   module Selection_error : sig
     type nonrec t =

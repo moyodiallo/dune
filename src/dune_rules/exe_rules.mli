@@ -1,7 +1,7 @@
 open Import
 
 val compile_info :
-  scope:Scope.t -> Dune_file.Executables.t -> Lib.Compile.t Memo.t
+  scope:Scope.t -> dir:Path.Build.t -> Dune_file.Executables.t -> Lib.Compile.t Memo.t
 
 val rules :
      sctx:Super_context.t

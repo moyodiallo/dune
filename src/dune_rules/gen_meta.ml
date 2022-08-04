@@ -64,7 +64,7 @@ let archives ?(preds = []) lib =
   ; plugin (preds @ [ Pos "native" ]) (make plugins.native)
   ]
 
-let gen_lib pub_name lib ~path ~version =
+let gen_lib pub_name lib ~path ~version ~dir =
   let open Memo.O in
   let info = Lib.info lib in
   let synopsis = Lib_info.synopsis info in
@@ -110,7 +110,7 @@ let gen_lib pub_name lib ~path ~version =
 
        Sigh... *)
     let open Resolve.Memo.O in
-    Lib.closure [ lib ] ~linking:false
+    Lib.closure [ lib ] ~linking:false ~dir
     >>= Resolve.Memo.List.concat_map ~f:Lib.ppx_runtime_deps
     >>| to_names |> Resolve.Memo.read_memo
   in
@@ -171,7 +171,7 @@ let gen_lib pub_name lib ~path ~version =
         ])
     ]
 
-let gen ~(package : Package.t) ~add_directory_entry entries =
+let gen ~dir ~(package : Package.t) ~add_directory_entry entries =
   let open Memo.O in
   let version =
     match package.version with
@@ -210,7 +210,7 @@ let gen ~(package : Package.t) ~add_directory_entry entries =
               | _ -> (pub_name, path)
             in
             let+ entries =
-              gen_lib pub_name ~path (Lib.Local.to_lib lib) ~version
+              gen_lib pub_name ~path (Lib.Local.to_lib lib) ~version ~dir
             in
             (pub_name, entries))
         | Deprecated_library_name

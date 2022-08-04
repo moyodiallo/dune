@@ -15,7 +15,7 @@ let include_dir_flags ~expander ~dir (stubs : Foreign.Stubs.t) =
   let scope = Expander.scope expander in
   let lib_dir loc lib_name =
     let open Resolve.Memo.O in
-    let+ lib = Lib.DB.resolve (Scope.libs scope) (loc, lib_name) in
+    let+ lib = Lib.DB.resolve ~dir (Scope.libs scope) (loc, lib_name) in
     Lib_info.src_dir (Lib.info lib)
   in
   Command.Args.S

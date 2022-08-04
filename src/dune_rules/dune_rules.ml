@@ -44,7 +44,7 @@ module Command = Command
 module Install = Install
 module Lib_name = Lib_name
 module Diff = Dune_lang.Action.Diff
-module Lib_resolved = Lib_resolved
+module Lib_external_deps = Lib_external_deps
 
 module Install_rules = struct
   let install_file = Install_rules.install_file

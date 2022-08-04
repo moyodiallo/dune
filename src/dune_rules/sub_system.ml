@@ -29,10 +29,10 @@ module Register_backend (M : Backend) = struct
     let compare a b = Lib.compare (M.lib a) (M.lib b)
   end)
 
-  let resolve db (loc, name) =
+  let resolve db ~dir (loc, name) =
     let open Memo.O in
     Resolve.Memo.bind
-      (Lib.DB.resolve db (loc, name))
+      (Lib.DB.resolve db ~dir (loc, name))
       ~f:(fun lib ->
         get lib >>| function
         | None ->
@@ -135,7 +135,7 @@ module Register_end_point (M : End_point) = struct
         | None -> Memo.return (Resolve.return None)
         | Some l ->
           let+ l =
-            Memo.parallel_map l ~f:(M.Backend.resolve (Scope.libs c.scope))
+            Memo.parallel_map l ~f:(M.Backend.resolve ~dir:c.dir (Scope.libs c.scope))
           in
           Resolve.map (Resolve.List.map l ~f:Fun.id) ~f:Option.some
       in

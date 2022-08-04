@@ -40,13 +40,13 @@ module Stanzas_to_entries : sig
   val stanzas_to_entries :
     Super_context.t -> Install.Entry.Sourced.t list Package.Name.Map.t Memo.t
 end = struct
-  let lib_ppxs sctx ~scope ~(lib : Dune_file.Library.t) =
+  let lib_ppxs sctx ~dir ~scope ~(lib : Dune_file.Library.t) =
     match lib.kind with
     | Normal | Ppx_deriver _ -> Memo.return []
     | Ppx_rewriter _ ->
       let name = Dune_file.Library.best_name lib in
       let+ ppx_exe =
-        Resolve.Memo.read_memo (Preprocessing.ppx_exe sctx ~scope name)
+        Resolve.Memo.read_memo (Preprocessing.ppx_exe sctx ~dir ~scope name)
       in
       [ ppx_exe ]
 
@@ -116,7 +116,7 @@ end = struct
       let modules =
         Ml_sources.modules ml_sources ~for_:(Library (Library.best_name lib))
       in
-      let+ impl = Virtual_rules.impl sctx ~lib ~scope in
+      let+ impl = Virtual_rules.impl sctx ~lib ~scope ~dir in
       let modules = Vimpl.impl_modules impl modules in
       Modules.split_by_lib modules
     in
@@ -195,7 +195,7 @@ end = struct
       let dll_files = dll_files ~modes ~dynlink:lib.dynlink ~ctx info in
       (lib_files, dll_files)
     in
-    let+ execs = lib_ppxs ctx ~scope ~lib in
+    let+ execs = lib_ppxs ctx ~dir ~scope ~lib in
     let install_c_headers =
       List.map lib.install_c_headers ~f:(fun base ->
           Path.Build.relative dir (base ^ Foreign_language.header_extension))
@@ -212,14 +212,14 @@ end = struct
       ; List.map ~f:(make_entry Lib) install_c_headers
       ]
 
-  let keep_if expander ~scope stanza =
+  let keep_if expander ~dir ~scope stanza =
     let+ keep =
       match (stanza : Stanza.t) with
       | Dune_file.Library lib ->
         let* enabled_if = Expander.eval_blang expander lib.enabled_if in
         if enabled_if then
           if lib.optional then
-            Lib.DB.available (Scope.libs scope)
+            Lib.DB.available ~dir (Scope.libs scope)
               (Dune_file.Library.best_name lib)
           else Memo.return true
         else Memo.return false
@@ -241,11 +241,11 @@ end = struct
                 Preprocess.Per_module.with_instrumentation
                   exes.buildable.preprocess
                   ~instrumentation_backend:
-                    (Lib.DB.instrumentation_backend (Scope.libs scope))
+                    (Lib.DB.instrumentation_backend ~dir (Scope.libs scope))
                 |> Resolve.Memo.read_memo >>| Preprocess.Per_module.pps
               in
               Lib.DB.resolve_user_written_deps_for_exes (Scope.libs scope)
-                exes.names exes.buildable.libraries ~pps ~dune_version
+                exes.names exes.buildable.libraries ~dir ~pps ~dune_version
                 ~allow_overlaps:exes.buildable.allow_overlapping_dependencies
             in
             let+ requires = Lib.Compile.direct_requires compile_info in
@@ -261,7 +261,7 @@ end = struct
 
   let stanza_to_entries ~sites ~sctx ~dir ~scope ~expander stanza =
     let* stanza_and_package =
-      let+ stanza = keep_if expander stanza ~scope in
+      let+ stanza = keep_if expander stanza ~dir ~scope in
       let open Option.O in
       let* stanza = stanza in
       let+ package = Dune_file.stanza_package stanza in
@@ -659,7 +659,7 @@ end = struct
         (let* template = template in
          let+ meta =
            Action_builder.of_memo
-             (Gen_meta.gen ~package:pkg ~add_directory_entry:true entries)
+             (Gen_meta.gen ~dir:ctx.build_dir ~package:pkg ~add_directory_entry:true entries)
          in
          let pp =
            Pp.vbox
@@ -691,7 +691,7 @@ end = struct
                  | Some entries -> entries
                in
                Action_builder.of_memo
-                 (Gen_meta.gen ~package:pkg entries ~add_directory_entry:false)
+                 (Gen_meta.gen ~dir:ctx.build_dir ~package:pkg entries ~add_directory_entry:false)
              in
              let pp =
                let open Pp.O in

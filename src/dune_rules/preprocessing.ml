@@ -280,13 +280,13 @@ let ppx_exe (ctx : Context.t) ~key =
   let build_dir = ctx.build_dir in
   Path.Build.relative build_dir (".ppx/" ^ key ^ "/ppx.exe")
 
-let build_ppx_driver sctx ~scope ~target ~pps ~pp_names =
+let build_ppx_driver sctx ~dir ~scope ~target ~pps ~pp_names =
   let open Memo.O in
   let ctx = SC.context sctx in
   let* driver_and_libs =
     let ( let& ) t f = Resolve.Memo.bind t ~f in
     let& pps = Resolve.Memo.lift pps in
-    let& pps = Lib.closure ~linking:true pps in
+    let& pps = Lib.closure ~dir ~linking:true pps in
     Driver.select pps ~loc:(Dot_ppx (target, pp_names))
     >>| Resolve.map ~f:(fun driver -> (driver, pps))
     >>| (* Extend the dependency stack as we don't have locations at this
@@ -338,7 +338,7 @@ let build_ppx_driver sctx ~scope ~target ~pps ~pp_names =
   in
   ()
 
-let get_rules sctx key =
+let get_rules sctx key ~dir =
   let ctx = Super_context.context sctx in
   let exe = ppx_exe ctx ~key in
   let* pp_names, scope =
@@ -363,13 +363,13 @@ let get_rules sctx key =
   let open Memo.O in
   let* pps =
     let lib_db = Scope.libs scope in
-    List.map pp_names ~f:(fun x -> (Loc.none, x)) |> Lib.DB.resolve_pps lib_db
+    List.map pp_names ~f:(fun x -> (Loc.none, x)) |> Lib.DB.resolve_pps ~dir lib_db
   in
-  build_ppx_driver sctx ~scope ~pps ~pp_names ~target:exe
+  build_ppx_driver sctx ~dir ~scope ~pps ~pp_names ~target:exe
 
-let gen_rules sctx components =
+let gen_rules sctx ~dir components =
   match components with
-  | [ key ] -> get_rules sctx key
+  | [ key ] -> get_rules sctx key ~dir
   | _ -> Memo.return ()
 
 let ppx_driver_exe (ctx : Context.t) libs =
@@ -447,15 +447,15 @@ let ppx_driver_and_flags_internal sctx ~dune_version ~loc ~expander ~lib_name
   in
   (ppx_driver_exe, flags @ cookies)
 
-let ppx_driver_and_flags sctx ~lib_name ~expander ~scope ~loc ~flags pps =
+let ppx_driver_and_flags sctx ~dir ~lib_name ~expander ~scope ~loc ~flags pps =
   let open Action_builder.O in
-  let* libs = Resolve.Memo.read (Lib.DB.resolve_pps (Scope.libs scope) pps) in
+  let* libs = Resolve.Memo.read (Lib.DB.resolve_pps ~dir (Scope.libs scope) pps) in
   let* exe, flags =
     let dune_version = Scope.project scope |> Dune_project.dune_version in
     ppx_driver_and_flags_internal sctx ~loc ~expander ~dune_version ~lib_name
       ~flags libs
   in
-  let* libs = Resolve.Memo.read (Lib.closure libs ~linking:true) in
+  let* libs = Resolve.Memo.read (Lib.closure libs ~dir ~linking:true) in
   let+ driver =
     Action_builder.of_memo (Driver.select libs ~loc:(User_file (loc, pps)))
     >>= Resolve.read
@@ -564,7 +564,7 @@ let lint_module sctx ~sandbox ~dir ~expander ~lint ~lib_name ~scope =
                "ppx driver and flags"
                (let* () = Action_builder.return () in
                 let* exe, driver, flags =
-                  ppx_driver_and_flags sctx ~expander ~loc ~lib_name ~flags
+                  ppx_driver_and_flags sctx ~dir ~expander ~loc ~lib_name ~flags
                     ~scope pps
                 in
                 let+ ppx_flags =
@@ -660,7 +660,7 @@ let make sctx ~dir ~expander ~lint ~preprocess ~preprocessor_deps
               "ppx driver and flags"
               (let* () = Action_builder.return () in
                let* exe, driver, flags =
-                 ppx_driver_and_flags sctx ~expander ~loc ~lib_name ~flags
+                 ppx_driver_and_flags sctx ~dir ~expander ~loc ~lib_name ~flags
                    ~scope pps
                in
                let+ ppx_flags =
@@ -702,7 +702,7 @@ let make sctx ~dir ~expander ~lint ~preprocess ~preprocessor_deps
               "ppx command"
               (let* () = Action_builder.return () in
                let* exe, driver, flags =
-                 ppx_driver_and_flags sctx ~expander ~loc ~scope ~flags
+                 ppx_driver_and_flags sctx ~dir ~expander ~loc ~scope ~flags
                    ~lib_name pps
                in
                let+ () = Action_builder.path (Path.build exe)
@@ -734,14 +734,14 @@ let make sctx ~dir ~expander ~lint ~preprocess ~preprocessor_deps
             Module.set_pp ast pp)
   |> Pp_spec.make
 
-let get_ppx_driver sctx ~loc ~expander ~scope ~lib_name ~flags pps =
+let get_ppx_driver sctx ~dir ~loc ~expander ~scope ~lib_name ~flags pps =
   let open Action_builder.O in
-  let* libs = Resolve.Memo.read (Lib.DB.resolve_pps (Scope.libs scope) pps) in
+  let* libs = Resolve.Memo.read (Lib.DB.resolve_pps ~dir (Scope.libs scope) pps) in
   let dune_version = Scope.project scope |> Dune_project.dune_version in
   ppx_driver_and_flags_internal sctx ~loc ~expander ~dune_version ~lib_name
     ~flags libs
 
-let ppx_exe sctx ~scope pp =
+let ppx_exe sctx ~scope ~dir pp =
   let open Resolve.Memo.O in
-  let+ libs = Lib.DB.resolve_pps (Scope.libs scope) [ (Loc.none, pp) ] in
+  let+ libs = Lib.DB.resolve_pps ~dir (Scope.libs scope) [ (Loc.none, pp) ] in
   ppx_driver_exe sctx libs

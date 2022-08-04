@@ -263,7 +263,7 @@ let build_c_program ~foreign_archives_deps ~sctx ~dir ~source_files ~scope
     let+ ctypes_include_dirs =
       let+ lib =
         let ctypes = Lib_name.of_string "ctypes" in
-        Lib.DB.resolve (Scope.libs scope) (Loc.none, ctypes)
+        Lib.DB.resolve ~dir (Scope.libs scope) (Loc.none, ctypes)
         (* | Ok lib -> lib | Error _res -> User_error.raise [ Pp.textf "the
            'ctypes' library needs to be installed to use the ctypes stanza"] *)
       in
@@ -340,7 +340,7 @@ let cctx_with_substitutions ?(libraries = []) ~modules ~dir ~loc ~scope ~cctx ()
     =
   let compile_info =
     let dune_version = Scope.project scope |> Dune_project.dune_version in
-    Lib.DB.resolve_user_written_deps_for_exes (Scope.libs scope)
+    Lib.DB.resolve_user_written_deps_for_exes ~dir (Scope.libs scope)
       [ (loc, "ctypes") ]
       (Ctypes.lib_deps_of_strings ~loc libraries)
       ~dune_version ~pps:[]

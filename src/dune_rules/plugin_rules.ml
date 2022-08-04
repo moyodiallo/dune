@@ -11,8 +11,8 @@ let meta_file ~dir { name; libraries = _; site = _, (pkg, site); _ } =
     ; Findlib.meta_fn
     ]
 
-let resolve_libs t public_libs =
-  Resolve.Memo.List.map t.libraries ~f:(Lib.DB.resolve public_libs)
+let resolve_libs t public_libs ~dir =
+  Resolve.Memo.List.map t.libraries ~f:(Lib.DB.resolve ~dir public_libs)
 
 let setup_rules ~sctx ~dir t =
   let meta = meta_file ~dir t in
@@ -21,7 +21,7 @@ let setup_rules ~sctx ~dir t =
     (Action_builder.write_file_dyn meta
        (Resolve.Memo.read
           (let open Resolve.Memo.O in
-          let+ requires = resolve_libs t public_libs in
+          let+ requires = resolve_libs ~dir t public_libs in
           let meta =
             { Meta.name = None
             ; entries =
@@ -37,7 +37,7 @@ let install_rules ~sctx ~sites ~dir ({ name; site = loc, (pkg, site); _ } as t)
     =
   let* skip_files =
     let* public_libs = Scope.DB.public_libs (Super_context.context sctx) in
-    if t.optional then Resolve.Memo.is_error (resolve_libs t public_libs)
+    if t.optional then Resolve.Memo.is_error (resolve_libs t public_libs ~dir)
     else Memo.return false
   in
   if skip_files then Memo.return []

@@ -350,7 +350,7 @@ let mdx_prog_gen t ~sctx ~dir ~scope ~expander ~mdx_prog =
     let+ libs_to_include =
       Resolve.Memo.List.filter_map t.libraries ~f:(function
         | Direct lib | Re_export lib ->
-          let+ lib = Lib.DB.resolve (Scope.libs scope) lib in
+          let+ lib = Lib.DB.resolve ~dir (Scope.libs scope) lib in
           Some lib
         | _ -> Resolve.Memo.return None)
     in
@@ -382,7 +382,7 @@ let mdx_prog_gen t ~sctx ~dir ~scope ~expander ~mdx_prog =
   let flags = Ocaml_flags.default ~dune_version ~profile:Release in
   let lib name = Lib_dep.Direct (loc, Lib_name.of_string name) in
   let compile_info =
-    Lib.DB.resolve_user_written_deps_for_exes (Scope.libs scope)
+    Lib.DB.resolve_user_written_deps_for_exes ~dir (Scope.libs scope)
       [ (t.loc, name) ]
       (lib "mdx.test" :: lib "mdx.top" :: t.libraries)
       ~pps:[] ~dune_version

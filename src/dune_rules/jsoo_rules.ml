@@ -130,7 +130,7 @@ let build_cm cc ~in_context ~src ~target =
   let flags = in_context.Js_of_ocaml.In_context.flags in
   js_of_ocaml_rule sctx ~sub_command:Compile ~dir ~flags ~spec ~target
 
-let setup_separate_compilation_rules sctx components =
+let setup_separate_compilation_rules sctx components ~dir =
   match components with
   | [] | _ :: _ :: _ -> Memo.return ()
   | [ pkg ] -> (
@@ -138,7 +138,7 @@ let setup_separate_compilation_rules sctx components =
     let ctx = SC.context sctx in
     let open Memo.O in
     let* installed_libs = Lib.DB.installed ctx in
-    Lib.DB.find installed_libs pkg >>= function
+    Lib.DB.find ~dir installed_libs pkg >>= function
     | None -> Memo.return ()
     | Some pkg ->
       let info = Lib.info pkg in

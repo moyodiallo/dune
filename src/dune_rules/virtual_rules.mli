@@ -7,4 +7,5 @@ val impl :
      Super_context.t
   -> lib:Dune_file.Library.t
   -> scope:Scope.t
+  -> dir:Path.Build.t
   -> Vimpl.t option Memo.t

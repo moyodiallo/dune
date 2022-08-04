@@ -132,23 +132,23 @@ module DB : sig
     -> unit
     -> t
 
-  val find : t -> Lib_name.t -> lib option Memo.t
+  val find : t -> Lib_name.t -> dir:Path.Build.t -> lib option Memo.t
 
-  val find_even_when_hidden : t -> Lib_name.t -> lib option Memo.t
+  val find_even_when_hidden : t -> Lib_name.t -> dir:Path.Build.t -> lib option Memo.t
 
-  val available : t -> Lib_name.t -> bool Memo.t
+  val available : t -> Lib_name.t -> dir:Path.Build.t -> bool Memo.t
 
   (** Retrieve the compile information for the given library. Works for
       libraries that are optional and not available as well. *)
   val get_compile_info :
-    t -> ?allow_overlaps:bool -> Lib_name.t -> (lib * Compile.t) Memo.t
+    t -> ?allow_overlaps:bool -> Lib_name.t -> dir:Path.Build.t -> (lib * Compile.t) Memo.t
 
-  val resolve : t -> Loc.t * Lib_name.t -> lib Resolve.Memo.t
+  val resolve : t -> Loc.t * Lib_name.t -> dir:Path.Build.t -> lib Resolve.Memo.t
 
   (** Like [resolve], but will return [None] instead of an error if we are
       unable to find the library. *)
   val resolve_when_exists :
-    t -> Loc.t * Lib_name.t -> lib Resolve.t option Memo.t
+    t -> Loc.t * Lib_name.t -> dir:Path.Build.t -> lib Resolve.t option Memo.t
 
   (** Resolve libraries written by the user in a [dune] file. The resulting list
       of libraries is transitively closed and sorted by the order of
@@ -161,25 +161,27 @@ module DB : sig
     -> ?allow_overlaps:bool
     -> ?forbidden_libraries:(Loc.t * Lib_name.t) list
     -> Lib_dep.t list
+    -> dir:Path.Build.t
     -> pps:(Loc.t * Lib_name.t) list
     -> dune_version:Dune_lang.Syntax.Version.t
     -> Compile.t
 
-  val resolve_pps : t -> (Loc.t * Lib_name.t) list -> lib list Resolve.Memo.t
+  val resolve_pps : t -> (Loc.t * Lib_name.t) list -> dir:Path.Build.t -> lib list Resolve.Memo.t
 
   (** Return the list of all libraries in this database. If [recursive] is true,
       also include libraries in parent databases recursively. *)
-  val all : ?recursive:bool -> t -> Set.t Memo.t
+  val all : ?recursive:bool -> t -> dir:Path.Build.t -> Set.t Memo.t
 
   val instrumentation_backend :
        t
     -> Loc.t * Lib_name.t
+    -> dir:Path.Build.t
     -> Preprocess.Without_instrumentation.t option Resolve.Memo.t
 end
 
 (** {1 Transitive closure} *)
 
-val closure : t list -> linking:bool -> t list Resolve.Memo.t
+val closure : t list -> linking:bool -> dir:Path.Build.t -> t list Resolve.Memo.t
 
 (** {1 Sub-systems} *)
 

@@ -103,13 +103,13 @@ include Sub_system.Register_end_point (struct
             backend.runner_libraries)
       in
       let* lib =
-        Lib.DB.resolve (Scope.libs scope) (loc, Dune_file.Library.best_name lib)
+        Lib.DB.resolve ~dir:inline_test_dir (Scope.libs scope) (loc, Dune_file.Library.best_name lib)
       in
       let* more_libs =
         Resolve.Memo.List.map info.libraries
-          ~f:(Lib.DB.resolve (Scope.libs scope))
+          ~f:(Lib.DB.resolve ~dir:inline_test_dir (Scope.libs scope))
       in
-      Lib.closure ~linking:true ((lib :: libs) @ more_libs)
+      Lib.closure ~dir:inline_test_dir ~linking:true ((lib :: libs) @ more_libs)
     in
     (* Generate the runner file *)
     let* () =

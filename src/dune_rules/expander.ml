@@ -116,7 +116,7 @@ let dep p =
   let+ () = Action_builder.path p in
   [ Value.Path p ]
 
-let expand_version { scope; _ } ~source s =
+let expand_version { scope; _ } ~dir ~source s =
   let value_from_version = function
     | None -> [ Value.String "" ]
     | Some s -> [ String s ]
@@ -147,7 +147,7 @@ let expand_version { scope; _ } ~source s =
              names are allowed"
         ];
     let open Memo.O in
-    Lib.DB.find (Scope.libs scope) libname >>| function
+    Lib.DB.find ~dir (Scope.libs scope) libname >>| function
     | Some lib -> value_from_version (Lib_info.version (Lib.info lib))
     | None ->
       User_error.raise ~loc:source.Dune_lang.Template.Pform.loc
@@ -424,7 +424,7 @@ let expand_pform_gen ~(context : Context.t) ~bindings ~dir ~source
                   (Memo.return
                      (string (Option.value ~default (Env.get t.env var))))))
       | Version ->
-        Need_full_expander (fun t -> Without (expand_version t ~source s))
+        Need_full_expander (fun t -> Without (expand_version t ~dir ~source s))
       | Artifact a ->
         Need_full_expander (fun t -> With (expand_artifact ~source t a s))
       | Path_no_dep ->
@@ -464,7 +464,7 @@ let expand_pform_gen ~(context : Context.t) ~bindings ~dir ~source
                  let open Resolve.Memo.O in
                  if lib_private then
                    let* lib =
-                     Lib.DB.resolve (Scope.libs scope)
+                     Lib.DB.resolve ~dir (Scope.libs scope)
                        (Dune_lang.Template.Pform.loc source, lib)
                    in
                    let current_project = Scope.project t.scope
@@ -502,7 +502,7 @@ let expand_pform_gen ~(context : Context.t) ~bindings ~dir ~source
                    in
                    Artifacts.Public_libs.file_of_lib artifacts
                      ~loc:(Dune_lang.Template.Pform.loc source)
-                     ~lib ~file
+                     ~lib ~file ~dir
                in
                let p =
                  let open Memo.O in
@@ -556,7 +556,7 @@ let expand_pform_gen ~(context : Context.t) ~bindings ~dir ~source
                        let open Resolve.Memo.O in
                        let* available =
                          Resolve.Memo.lift_memo
-                           (Lib.DB.available (Scope.libs scope) lib)
+                           (Lib.DB.available ~dir (Scope.libs scope) lib)
                        in
                        match available with
                        | false -> p >>| fun _ -> assert false
@@ -585,7 +585,7 @@ let expand_pform_gen ~(context : Context.t) ~bindings ~dir ~source
                    (Dune_lang.Template.Pform.loc source, s)
                in
                let open Memo.O in
-               let+ available = Lib.DB.available (Scope.libs t.scope) lib in
+               let+ available = Lib.DB.available ~dir (Scope.libs t.scope) lib in
                available |> string_of_bool |> string))
       | Bin_available ->
         Need_full_expander

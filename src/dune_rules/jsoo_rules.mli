@@ -20,6 +20,6 @@ val build_exe :
   -> unit Memo.t
 
 val setup_separate_compilation_rules :
-  Super_context.t -> string list -> unit Memo.t
+  Super_context.t -> string list -> dir:Path.Build.t -> unit Memo.t
 
 val runner : string

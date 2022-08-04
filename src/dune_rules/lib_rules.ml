@@ -384,7 +384,7 @@ let setup_build_archives (lib : Dune_file.Library.t) ~top_sorted_modules ~cctx
 let cctx (lib : Library.t) ~sctx ~source_modules ~dir ~expander ~scope
     ~compile_info =
   let* flags = Super_context.ocaml_flags sctx ~dir lib.buildable.flags
-  and* vimpl = Virtual_rules.impl sctx ~lib ~scope in
+  and* vimpl = Virtual_rules.impl sctx ~lib ~scope ~dir in
   let obj_dir = Library.obj_dir ~dir lib in
   let ctx = Super_context.context sctx in
   let* modules, pp =
@@ -463,7 +463,7 @@ let library_rules (lib : Library.t) ~local_lib ~cctx ~source_modules
     Resolve.Memo.read_memo
       (Preprocess.Per_module.with_instrumentation lib.buildable.preprocess
          ~instrumentation_backend:
-           (Lib.DB.instrumentation_backend (Scope.libs scope)))
+           (Lib.DB.instrumentation_backend ~dir (Scope.libs scope)))
   in
   ( cctx
   , Merlin.make ~requires:requires_compile ~stdlib_dir ~flags ~modules
@@ -476,7 +476,7 @@ let rules (lib : Library.t) ~sctx ~dir_contents ~dir ~expander ~scope =
   let buildable = lib.buildable in
   let* local_lib, compile_info =
     Lib.DB.get_compile_info (Scope.libs scope) (Library.best_name lib)
-      ~allow_overlaps:buildable.allow_overlapping_dependencies
+      ~dir ~allow_overlaps:buildable.allow_overlapping_dependencies
   in
   let local_lib = Lib.Local.of_lib_exn local_lib in
   let f () =

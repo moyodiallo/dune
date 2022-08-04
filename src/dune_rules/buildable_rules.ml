@@ -30,7 +30,7 @@ let modules_rules sctx (buildable : Dune_file.Buildable.t) expander ~dir scope
     modules ~lib_name ~empty_intf_modules =
   let* pp =
     let instrumentation_backend =
-      Lib.DB.instrumentation_backend (Scope.libs scope)
+      Lib.DB.instrumentation_backend ~dir (Scope.libs scope)
     in
     let* preprocess =
       Resolve.Memo.read_memo

@@ -226,7 +226,7 @@ let make_lib_modules ~dir ~libs ~lookup_vlib ~(lib : Library.t) ~modules =
       let open Memo.O in
       let* resolved =
         let name = Library.best_name lib in
-        Lib.DB.find_even_when_hidden libs name
+        Lib.DB.find_even_when_hidden ~dir libs name
         (* can't happen because this library is defined using the current
            stanza *)
         >>| Option.value_exn

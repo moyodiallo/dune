@@ -51,11 +51,11 @@ let get_installed_binaries ~(context : Context.t) stanzas =
                       (Preprocess.Per_module.with_instrumentation
                          exes.buildable.preprocess
                          ~instrumentation_backend:
-                           (Lib.DB.instrumentation_backend (Scope.libs scope)))
+                           (Lib.DB.instrumentation_backend ~dir (Scope.libs scope)))
                     >>| Preprocess.Per_module.pps
                   in
                   Lib.DB.resolve_user_written_deps_for_exes (Scope.libs scope)
-                    exes.names exes.buildable.libraries ~pps ~dune_version
+                    exes.names exes.buildable.libraries ~dir ~pps ~dune_version
                     ~allow_overlaps:
                       exes.buildable.allow_overlapping_dependencies
                 in

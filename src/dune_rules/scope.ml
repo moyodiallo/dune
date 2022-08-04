@@ -361,7 +361,7 @@ module DB = struct
                   find_by_dir (Path.Build.append_source build_dir d.dir)
                 in
                 let db = libs scope in
-                Lib.DB.find db (Dune_file.Library.best_name lib)
+                Lib.DB.find db (Dune_file.Library.best_name lib) ~dir:build_dir
               in
               match lib with
               | None -> acc
@@ -370,7 +370,7 @@ module DB = struct
                 (name, Lib_entry.Library (Lib.Local.of_lib_exn lib)) :: acc)
             | Dune_file.Library { visibility = Public pub; _ } -> (
               let+ lib =
-                Lib.DB.find public_libs (Dune_file.Public_lib.name pub)
+                Lib.DB.find public_libs (Dune_file.Public_lib.name pub) ~dir:build_dir
               in
               match lib with
               | None ->

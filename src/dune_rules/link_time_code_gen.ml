@@ -222,6 +222,7 @@ let handle_special_libs cctx =
   let obj_dir = Compilation_context.obj_dir cctx |> Obj_dir.of_local in
   let sctx = CC.super_context cctx in
   let ctx = Super_context.context sctx in
+  let dir = CC.dir cctx in
   let open Memo.O in
   let* builtins =
     let+ findlib =
@@ -261,9 +262,9 @@ let handle_special_libs cctx =
             let* db = Scope.DB.public_libs (Super_context.context sctx) in
             let open Resolve.Memo.O in
             let+ dynlink =
-              Lib.DB.resolve db (Loc.none, Lib_name.of_string "dynlink")
+              Lib.DB.resolve ~dir db (Loc.none, Lib_name.of_string "dynlink")
             and+ findlib =
-              Lib.DB.resolve db (Loc.none, Lib_name.of_string "findlib")
+              Lib.DB.resolve ~dir db (Loc.none, Lib_name.of_string "findlib")
             in
             [ dynlink; findlib ]
           in

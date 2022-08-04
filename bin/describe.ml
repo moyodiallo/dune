@@ -348,7 +348,7 @@ module Crawl = struct
     in
     let* modules_ = modules ~obj_dir ~deps_of modules_ in
     let+ requires =
-      let* compile_info = Exe_rules.compile_info ~scope exes in
+      let* compile_info = Exe_rules.compile_info ~dir ~scope exes in
       Lib.Compile.direct_requires compile_info
     in
     match Resolve.peek requires with
@@ -406,9 +406,9 @@ module Crawl = struct
 
   (** [add_transitive_deps libs] returns the union of [libs] and of its
       transitive dependencies *)
-  let add_transitive_deps (libs : Lib.t list) =
+  let add_transitive_deps (libs : Lib.t list) ~dir =
     (* get the transitive closure using [Lib.closure] *)
-    Lib.closure libs ~linking:false
+    Lib.closure libs ~linking:false ~dir
     >>| Resolve.to_result >>| Result.value ~default:[]
     >>| (* then, remove duplicates, and ensure the list is sorted, for
            reproducibility concerns *)
@@ -446,13 +446,16 @@ module Crawl = struct
       (* the list of libraries declared in the project *)
       Memo.parallel_map conf.projects ~f:(fun project ->
           let* scope = Scope.DB.find_by_project ctx project in
-          Scope.libs scope |> Lib.DB.all)
+          Scope.libs scope
+          |> Lib.DB.all
+               ~dir:(Path.Build.append_source ctx.build_dir (Dune_project.root project)))
       >>| Lib.Set.union_all
     in
     let+ libs =
       (* the executables' libraries, and the project's libraries *)
       Lib.Set.union exe_libs project_libs
-      |> Lib.Set.to_list |> add_transitive_deps
+      |> Lib.Set.to_list
+      |> add_transitive_deps ~dir:context.build_dir
       >>= Memo.parallel_map ~f:(library ~options sctx)
       >>| List.filter_opt
     in

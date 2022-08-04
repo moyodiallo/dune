@@ -98,21 +98,21 @@ module Bootstrap = struct
 end
 
 (* get_libraries from Coq's ML dependencies *)
-let libs_of_coq_deps ~lib_db = Resolve.Memo.List.map ~f:(Lib.DB.resolve lib_db)
+let libs_of_coq_deps ~dir ~lib_db = Resolve.Memo.List.map ~f:(Lib.DB.resolve ~dir lib_db)
 
 let select_native_mode ~sctx ~(buildable : Buildable.t) : Coq_mode.t =
   let profile = (Super_context.context sctx).profile in
   if Profile.is_dev profile then VoOnly else snd buildable.mode
 
-let rec resolve_first lib_db = function
+let rec resolve_first ~dir lib_db = function
   | [] -> assert false
-  | [ n ] -> Lib.DB.resolve lib_db (Loc.none, Lib_name.of_string n)
+  | [ n ] -> Lib.DB.resolve ~dir lib_db (Loc.none, Lib_name.of_string n)
   | n :: l -> (
     let open Memo.O in
-    Lib.DB.resolve_when_exists lib_db (Loc.none, Lib_name.of_string n)
+    Lib.DB.resolve_when_exists ~dir lib_db (Loc.none, Lib_name.of_string n)
     >>= function
     | Some l -> Resolve.Memo.lift l
-    | None -> resolve_first lib_db l)
+    | None -> resolve_first ~dir lib_db l)
 
 module Context = struct
   type 'a t =
@@ -219,7 +219,7 @@ module Context = struct
     ]
 
   (* compute include flags and mlpack rules *)
-  let setup_ml_deps libs theories =
+  let setup_ml_deps ~dir libs theories =
     (* Pair of include flags and paths to mlpack *)
     let libs =
       let open Resolve.Memo.O in
@@ -229,7 +229,7 @@ module Context = struct
         @@ Resolve.List.concat_map ~f:Coq_lib.libraries theories
       in
       let libs = libs @ theories in
-      Lib.closure ~linking:false (List.map ~f:snd libs)
+      Lib.closure ~dir ~linking:false (List.map ~f:snd libs)
     in
     ( Resolve.Memo.args (Resolve.Memo.map libs ~f:Util.include_flags)
     , let open Action_builder.O in
@@ -270,10 +270,10 @@ module Context = struct
         let open Resolve.Memo.O in
         let+ libs =
           Resolve.Memo.List.map buildable.plugins ~f:(fun (loc, name) ->
-              let+ lib = Lib.DB.resolve lib_db (loc, name) in
+              let+ lib = Lib.DB.resolve ~dir lib_db (loc, name) in
               (loc, lib))
         in
-        setup_ml_deps libs theories_deps
+        setup_ml_deps ~dir libs theories_deps
       in
       let ml_flags = Resolve.Memo.map res ~f:fst in
       let mlpack_rule =
@@ -286,7 +286,7 @@ module Context = struct
     let mode = select_native_mode ~sctx ~buildable in
     let* native_includes =
       let open Resolve.Memo.O in
-      resolve_first lib_db [ "coq-core.kernel"; "coq.kernel" ] >>| fun lib ->
+      resolve_first ~dir lib_db [ "coq-core.kernel"; "coq.kernel" ] >>| fun lib ->
       Util.coq_nativelib_cmi_dirs [ lib ]
     in
     let+ native_theory_includes =
@@ -617,10 +617,10 @@ let coqtop_args_theory ~sctx ~dir ~dir_contents (s : Theory.t) coq_module =
 
 (* This is here for compatibility with Coq < 8.11, which expects plugin files to
    be in the folder containing the `.vo` files *)
-let coq_plugins_install_rules ~scope ~package ~dst_dir (s : Theory.t) =
+let coq_plugins_install_rules ~dir ~scope ~package ~dst_dir (s : Theory.t) =
   let lib_db = Scope.libs scope in
   let+ ml_libs =
-    Resolve.Memo.read_memo (libs_of_coq_deps ~lib_db s.buildable.plugins)
+    Resolve.Memo.read_memo (libs_of_coq_deps ~dir ~lib_db s.buildable.plugins)
   in
   let rules_for_lib lib =
     let info = Lib.info lib in
@@ -670,7 +670,7 @@ let install_rules ~sctx ~dir s =
        is needed *)
     let* coq_plugins_install_rules =
       if s.boot then Memo.return []
-      else coq_plugins_install_rules ~scope ~package ~dst_dir s
+      else coq_plugins_install_rules ~dir ~scope ~package ~dst_dir s
     in
     let wrapper_name = Coq_lib_name.wrapper name in
     let to_path f = Path.reach ~from:(Path.build dir) (Path.build f) in

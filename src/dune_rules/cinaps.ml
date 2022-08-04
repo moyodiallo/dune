@@ -99,7 +99,7 @@ let gen_rules sctx t ~dir ~scope =
   in
   let dune_version = Scope.project scope |> Dune_project.dune_version in
   let compile_info =
-    Lib.DB.resolve_user_written_deps_for_exes (Scope.libs scope)
+    Lib.DB.resolve_user_written_deps_for_exes ~dir (Scope.libs scope)
       [ (t.loc, name) ]
       (Lib_dep.Direct (loc, Lib_name.of_string "cinaps.runtime") :: t.libraries)
       ~pps:(Preprocess.Per_module.pps t.preprocess)

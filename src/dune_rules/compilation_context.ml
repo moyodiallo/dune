@@ -258,7 +258,7 @@ let for_plugin_executable t ~embed_in_plugin_libraries =
   let libs = Scope.libs t.scope in
   let requires_link =
     Memo.lazy_ (fun () ->
-        Resolve.Memo.List.map ~f:(Lib.DB.resolve libs) embed_in_plugin_libraries)
+        Resolve.Memo.List.map ~f:(Lib.DB.resolve ~dir:(dir t) libs) embed_in_plugin_libraries)
   in
   { t with requires_link }
 

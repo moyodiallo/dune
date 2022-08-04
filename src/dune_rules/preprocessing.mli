@@ -17,6 +17,7 @@ val make :
 (** Get a path to a cached ppx driver with some extra flags for cookies. *)
 val get_ppx_driver :
      Super_context.t
+  -> dir:Path.Build.t
   -> loc:Loc.t
   -> expander:Expander.t
   -> scope:Scope.t
@@ -25,7 +26,7 @@ val get_ppx_driver :
   -> (Loc.t * Lib_name.t) list
   -> (Path.Build.t * string list) Action_builder.t
 
-val gen_rules : Super_context.t -> string list -> unit Memo.t
+val gen_rules : Super_context.t -> dir:Path.Build.t -> string list -> unit Memo.t
 
 val chdir : Action_unexpanded.t -> Action_unexpanded.t
 
@@ -39,4 +40,4 @@ val action_for_pp_with_target :
   -> Action.Full.t Action_builder.With_targets.t
 
 val ppx_exe :
-  Context.t -> scope:Scope.t -> Lib_name.t -> Path.Build.t Resolve.Memo.t
+  Context.t -> scope:Scope.t -> dir:Path.Build.t -> Lib_name.t -> Path.Build.t Resolve.Memo.t

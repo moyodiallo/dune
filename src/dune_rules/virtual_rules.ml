@@ -72,12 +72,12 @@ let setup_copy_rules_for_impl ~sctx ~dir vimpl =
   Modules.fold_no_vlib vlib_modules ~init:(Memo.return ()) ~f:(fun m acc ->
       acc >>> copy_objs m)
 
-let impl sctx ~(lib : Dune_file.Library.t) ~scope =
+let impl sctx ~(lib : Dune_file.Library.t) ~scope ~dir =
   let open Memo.O in
   match lib.implements with
   | None -> Memo.return None
   | Some (loc, implements) -> (
-    Lib.DB.find (Scope.libs scope) implements >>= function
+    Lib.DB.find ~dir (Scope.libs scope) implements >>= function
     | None ->
       User_error.raise ~loc
         [ Pp.textf "Cannot implement %s as that library isn't available"
@@ -113,7 +113,7 @@ let impl sctx ~(lib : Dune_file.Library.t) ~scope =
               (Preprocess.Per_module.with_instrumentation
                  lib.buildable.preprocess
                  ~instrumentation_backend:
-                   (Lib.DB.instrumentation_backend (Scope.libs scope)))
+                   (Lib.DB.instrumentation_backend ~dir (Scope.libs scope)))
           in
           let* modules =
             let pp_spec =

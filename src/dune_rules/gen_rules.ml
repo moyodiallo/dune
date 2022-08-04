@@ -73,7 +73,7 @@ end = struct
         Odoc.setup_private_library_doc_alias sctx ~scope ~dir:ctx_dir lib
       in
       let* available =
-        Lib.DB.available (Scope.libs scope) (Dune_file.Library.best_name lib)
+        Lib.DB.available ~dir (Scope.libs scope) (Dune_file.Library.best_name lib)
       in
       if available then
         let+ cctx, merlin =
@@ -375,14 +375,14 @@ let gen_rules ~sctx ~dir components : Build_config.gen_rules_result Memo.t =
       (match rest with
       | [] -> S.All
       | _ -> S.empty)
-      (fun () -> Jsoo_rules.setup_separate_compilation_rules sctx rest)
+      (fun () -> Jsoo_rules.setup_separate_compilation_rules sctx rest ~dir)
   | "_doc" :: rest -> Odoc.gen_rules sctx rest ~dir
   | ".ppx" :: rest ->
     has_rules
       (match rest with
       | [] -> S.All
       | _ -> S.empty)
-      (fun () -> Preprocessing.gen_rules sctx rest)
+      (fun () -> Preprocessing.gen_rules sctx rest ~dir)
   | _ -> (
     let src_dir = Path.Build.drop_build_context_exn dir in
     Source_tree.find_dir src_dir >>= function

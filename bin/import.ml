@@ -32,7 +32,7 @@ module Resolve = Dune_rules.Resolve
 module Log = Dune_util.Log
 module Dune_rpc = Dune_rpc_private
 module Graph = Dune_graph.Graph
-module Lib_resolved = Dune_rules.Lib_resolved
+module Lib_external_deps = Dune_rules.Lib_external_deps
 include Common.Let_syntax
 
 let in_group (t, info) = (Term.Group.Term t, info)

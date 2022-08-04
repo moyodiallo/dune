@@ -291,7 +291,7 @@ module Unprocessed = struct
             | _ -> None))
     | _ -> Action_builder.return None
 
-  let pp_flags sctx ~expander libname preprocess :
+  let pp_flags sctx ~dir ~expander libname preprocess :
       Processed.pp_flag option Action_builder.t =
     let scope = Expander.scope expander in
     match
@@ -304,7 +304,7 @@ module Unprocessed = struct
     | Pps { loc; pps; flags; staged = _ } ->
       let open Action_builder.O in
       let+ exe, flags =
-        Preprocessing.get_ppx_driver sctx ~loc ~expander ~lib_name:libname
+        Preprocessing.get_ppx_driver sctx ~dir ~loc ~expander ~lib_name:libname
           ~flags ~scope pps
       in
       let args =
@@ -337,7 +337,7 @@ module Unprocessed = struct
           ; preprocess
           ; libname
           }
-      } sctx ~more_src_dirs ~expander =
+      } sctx ~dir ~more_src_dirs ~expander =
     let open Action_builder.O in
     let+ config =
       let+ flags = flags
@@ -363,7 +363,7 @@ module Unprocessed = struct
       { Processed.stdlib_dir; src_dirs; obj_dirs; flags; extensions }
     and+ pp_config =
       Module_name.Per_item.map_action_builder preprocess
-        ~f:(pp_flags sctx ~expander libname)
+        ~f:(pp_flags sctx ~dir ~expander libname)
     in
     let modules =
       (* And copy for each module the resulting pp flags *)
@@ -381,7 +381,7 @@ let dot_merlin sctx ~dir ~more_src_dirs ~expander (t : Unprocessed.t) =
       (Action_builder.path (Path.build merlin_file))
   in
   let action =
-    let merlin = Unprocessed.process t sctx ~more_src_dirs ~expander in
+    let merlin = Unprocessed.process t sctx ~dir ~more_src_dirs ~expander in
     Action_builder.With_targets.write_file_dyn merlin_file
       (Action_builder.with_no_targets
          (Action_builder.map ~f:Processed.Persist.to_string merlin))

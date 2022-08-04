@@ -124,7 +124,7 @@ let executables_rules ~sctx ~dir ~expander ~dir_contents ~scope ~compile_info
     Resolve.Memo.read_memo
       (Preprocess.Per_module.with_instrumentation exes.buildable.preprocess
          ~instrumentation_backend:
-           (Lib.DB.instrumentation_backend (Scope.libs scope)))
+           (Lib.DB.instrumentation_backend ~dir (Scope.libs scope)))
   in
   let* dep_graphs =
     (* Building an archive for foreign stubs, we link the corresponding object
@@ -204,23 +204,23 @@ let executables_rules ~sctx ~dir ~expander ~dir_contents ~scope ~compile_info
       ~ident:(Lib.Compile.merlin_ident compile_info)
       () )
 
-let compile_info ~scope (exes : Dune_file.Executables.t) =
+let compile_info ~scope ~dir (exes : Dune_file.Executables.t) =
   let dune_version = Scope.project scope |> Dune_project.dune_version in
   let+ pps =
     Resolve.Memo.read_memo
       (Preprocess.Per_module.with_instrumentation exes.buildable.preprocess
          ~instrumentation_backend:
-           (Lib.DB.instrumentation_backend (Scope.libs scope)))
+           (Lib.DB.instrumentation_backend ~dir (Scope.libs scope)))
     >>| Preprocess.Per_module.pps
   in
   Lib.DB.resolve_user_written_deps_for_exes (Scope.libs scope) exes.names
-    exes.buildable.libraries ~pps ~dune_version
+    exes.buildable.libraries ~dir ~pps ~dune_version
     ~allow_overlaps:exes.buildable.allow_overlapping_dependencies
     ~forbidden_libraries:exes.forbidden_libraries
 
 let rules ~sctx ~dir ~dir_contents ~scope ~expander
     (exes : Dune_file.Executables.t) =
-  let* compile_info = compile_info ~scope exes in
+  let* compile_info = compile_info ~dir ~scope exes in
   let f () =
     executables_rules exes ~sctx ~dir ~dir_contents ~scope ~expander
       ~compile_info ~embed_in_plugin_libraries:exes.embed_in_plugin_libraries

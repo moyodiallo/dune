@@ -40,11 +40,11 @@ let term =
             Dune_engine.Context_name.Map.find setup.scontexts ctx_name
             |> Option.value_exn
           in
+          let dir =
+            let build_dir = (Super_context.context sctx).build_dir in
+            Path.Build.relative build_dir (Common.prefix_target common dir)
+          in
           let* libs =
-            let dir =
-              let build_dir = (Super_context.context sctx).build_dir in
-              Path.Build.relative build_dir (Common.prefix_target common dir)
-            in
             let* db =
               let+ scope = Dune_rules.Scope.DB.find_by_dir dir in
               Dune_rules.Scope.libs scope
@@ -53,7 +53,7 @@ let term =
           in
           let* requires =
             Dune_rules.Resolve.Memo.read_memo
-              (Dune_rules.Lib.closure ~linking:true libs)
+              (Dune_rules.Lib.closure ~dir ~linking:true libs)
           in
           let include_paths =
             Dune_rules.Lib_flags.L.toplevel_include_paths requires

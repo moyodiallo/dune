@@ -568,20 +568,20 @@ let setup_pkg_rules_def memo_name f =
   let module Input = struct
     module Super_context = Super_context.As_memo_key
 
-    type t = Super_context.t * Package.Name.t * Lib.Local.t list
+    type t = Super_context.t * Package.Name.t * Lib.Local.t list * Path.Build.t
 
-    let equal (s1, p1, l1) (s2, p2, l2) =
+    let equal (s1, p1, l1, _) (s2, p2, l2, _) =
       Package.Name.equal p1 p2
       && List.equal Lib.Local.equal l1 l2
       && Super_context.equal s1 s2
 
-    let hash (sctx, p, ls) =
+    let hash (sctx, p, ls, _) =
       Poly.hash
         ( Super_context.hash sctx
         , Package.Name.hash p
         , List.hash Lib.Local.hash ls )
 
-    let to_dyn (_, package, libs) =
+    let to_dyn (_, package, libs, _) =
       let open Dyn in
       Tuple
         [ Package.Name.to_dyn package
@@ -593,10 +593,10 @@ let setup_pkg_rules_def memo_name f =
     ~implicit_output:Rules.implicit_output f
 
 let setup_pkg_odocl_rules_def =
-  let f (sctx, pkg, (libs : Lib.Local.t list)) =
+  let f (sctx, pkg, (libs : Lib.Local.t list), dir) =
     let* requires =
       let libs = (libs :> Lib.t list) in
-      Lib.closure libs ~linking:false
+      Lib.closure libs ~linking:false ~dir
     in
     let* () = Memo.parallel_iter libs ~f:(setup_lib_odocl_rules sctx ~requires)
     and* _ =
@@ -614,8 +614,8 @@ let setup_pkg_odocl_rules_def =
   in
   setup_pkg_rules_def "setup-package-odocls-rules" f
 
-let setup_pkg_odocl_rules sctx ~pkg ~libs : unit Memo.t =
-  Memo.With_implicit_output.exec setup_pkg_odocl_rules_def (sctx, pkg, libs)
+let setup_pkg_odocl_rules sctx ~dir ~pkg ~libs : unit Memo.t =
+  Memo.With_implicit_output.exec setup_pkg_odocl_rules_def (sctx, pkg, libs, dir)
 
 let setup_lib_html_rules_def =
   let module Input = struct
@@ -649,7 +649,7 @@ let setup_lib_html_rules sctx lib =
   Memo.With_implicit_output.exec setup_lib_html_rules_def (sctx, lib)
 
 let setup_pkg_html_rules_def =
-  let f (sctx, pkg, (libs : Lib.Local.t list)) =
+  let f (sctx, pkg, (libs : Lib.Local.t list), _) =
     let ctx = Super_context.context sctx in
     let* () = Memo.parallel_iter libs ~f:(setup_lib_html_rules sctx)
     and* pkg_odocs =
@@ -668,8 +668,8 @@ let setup_pkg_html_rules_def =
   in
   setup_pkg_rules_def "setup-package-html-rules" f
 
-let setup_pkg_html_rules sctx ~pkg ~libs : unit Memo.t =
-  Memo.With_implicit_output.exec setup_pkg_html_rules_def (sctx, pkg, libs)
+let setup_pkg_html_rules sctx ~dir ~pkg ~libs : unit Memo.t =
+  Memo.With_implicit_output.exec setup_pkg_html_rules_def (sctx, pkg, libs, dir)
 
 let setup_package_aliases sctx (pkg : Package.t) =
   let ctx = Super_context.context sctx in
@@ -770,7 +770,7 @@ let setup_private_library_doc_alias sctx ~scope ~dir (l : Dune_file.Library.t) =
   | Private _ ->
     let ctx = Super_context.context sctx in
     let* lib =
-      Lib.DB.find_even_when_hidden (Scope.libs scope) (Library.best_name l)
+      Lib.DB.find_even_when_hidden ~dir (Scope.libs scope) (Library.best_name l)
       >>| Option.value_exn
     in
     let lib = Lib (Lib.Local.of_lib_exn lib) in
@@ -799,7 +799,7 @@ let with_package pkg ~f =
          })
   | Some pkg -> has_rules (f pkg)
 
-let gen_rules sctx ~dir:_ rest =
+let gen_rules sctx ~dir rest =
   match rest with
   | [] ->
     Memo.return
@@ -824,11 +824,11 @@ let gen_rules sctx ~dir:_ rest =
        let* lib, lib_db = Scope_key.of_string ctx lib_unique_name_or_pkg in
        let setup_pkg_odocl_rules pkg =
          let* pkg_libs = load_all_odoc_rules_pkg ctx ~pkg in
-         setup_pkg_odocl_rules sctx ~pkg ~libs:pkg_libs
+         setup_pkg_odocl_rules sctx ~dir ~pkg ~libs:pkg_libs
        in
        (* jeremiedimino: why isn't [None] some kind of error here? *)
        let* lib =
-         let+ lib = Lib.DB.find lib_db lib in
+         let+ lib = Lib.DB.find ~dir lib_db lib in
          Option.bind ~f:Lib.Local.of_lib lib
        in
        let+ () =
@@ -838,7 +838,7 @@ let gen_rules sctx ~dir:_ rest =
            match Lib_info.package (Lib.Local.info lib) with
            | None ->
              let* requires =
-               Lib.closure [ Lib.Local.to_lib lib ] ~linking:false
+               Lib.closure [ Lib.Local.to_lib lib ] ~linking:false ~dir
              in
              setup_lib_odocl_rules sctx lib ~requires
            | Some pkg -> setup_pkg_odocl_rules pkg)
@@ -864,11 +864,11 @@ let gen_rules sctx ~dir:_ rest =
          let* pkg_libs =
            load_all_odoc_rules_pkg (Super_context.context sctx) ~pkg
          in
-         setup_pkg_html_rules sctx ~pkg ~libs:pkg_libs
+         setup_pkg_html_rules sctx ~dir ~pkg ~libs:pkg_libs
        in
        (* jeremiedimino: why isn't [None] some kind of error here? *)
        let* lib =
-         let+ lib = Lib.DB.find lib_db lib in
+         let+ lib = Lib.DB.find ~dir lib_db lib in
          Option.bind ~f:Lib.Local.of_lib lib
        in
        let+ () =

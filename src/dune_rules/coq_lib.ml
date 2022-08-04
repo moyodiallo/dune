@@ -186,7 +186,7 @@ module DB = struct
         let+ libraries =
           Resolve.Memo.List.map s.buildable.plugins ~f:(fun (loc, lib) ->
               let open Resolve.Memo.O in
-              let* lib = Lib.DB.resolve db (loc, lib) in
+              let* lib = Lib.DB.resolve ~dir db (loc, lib) in
               let+ () =
                 Resolve.Memo.lift
                 @@

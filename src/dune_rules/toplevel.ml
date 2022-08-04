@@ -65,13 +65,14 @@ let make ~cctx ~source ~preprocess = { cctx; source; preprocess }
 let pp_flags t =
   let open Action_builder.O in
   let open Pp.O in
+  let dir = Compilation_context.dir t.cctx in
   let sctx = Compilation_context.super_context t.cctx in
   let scope = Compilation_context.scope t.cctx in
   let expander = Compilation_context.expander t.cctx in
   match t.preprocess with
   | Pps { loc; pps; flags; staged = _ } ->
     let+ exe, flags =
-      Preprocessing.get_ppx_driver sctx ~loc ~expander ~lib_name:None ~flags
+      Preprocessing.get_ppx_driver sctx ~dir ~loc ~expander ~lib_name:None ~flags
         ~scope pps
     in
     let ppx =
@@ -158,7 +159,7 @@ module Stanza = struct
         [ (source.loc, source.name) ]
         (Lib_dep.Direct (source.loc, compiler_libs)
         :: List.map toplevel.libraries ~f:(fun d -> Lib_dep.Direct d))
-        ~pps ~dune_version ~allow_overlaps:false
+        ~dir ~pps ~dune_version ~allow_overlaps:false
     in
     let requires_compile = Lib.Compile.direct_requires compile_info in
     let requires_link = Lib.Compile.requires_link compile_info in

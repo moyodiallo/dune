@@ -36,7 +36,7 @@ module Public_libs : sig
   (** [file_of_lib t ~from ~lib ~file] returns the path to a file in the
       directory of the given library. *)
   val file_of_lib :
-    t -> loc:Loc.t -> lib:Lib_name.t -> file:string -> Path.t Resolve.Memo.t
+    t -> loc:Loc.t -> lib:Lib_name.t -> file:string -> dir:Path.Build.t -> Path.t Resolve.Memo.t
 end
 
 type t = private

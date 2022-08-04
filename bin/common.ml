@@ -989,7 +989,7 @@ let term ~default_root_is_cwd =
       & opt ~vopt:(Some `Normal) (some (enum [("sexp",`Sexp);("normal",`Normal)])) None
       & info ["external-lib-deps"]
         ~doc:
-            "Print all resolved external dependency libraries. \
+            "Print all external dependency libraries. \
             $(b,--external-lib-deps=sexp) - to print in S-expression format")
   and+ react_to_insignificant_changes =
     Arg.(
