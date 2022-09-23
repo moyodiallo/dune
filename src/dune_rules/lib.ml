@@ -783,7 +783,7 @@ module rec Resolve_names : sig
   val resolve_dep :
     db -> Loc.t * Lib_name.t -> dir:Path.Build.t -> private_deps:private_deps -> lib Resolve.Memo.t
 
-  val resolve_name : db -> dir:Path.Build.t -> Lib_name.t -> Status.t Memo.t
+  val resolve_name : db -> dir:Path.Build.t -> Lib_name.t -> (Status.t * Kind_db.t) Memo.t
 
   val available_internal : db -> dir:Path.Build.t -> Lib_name.t -> bool Memo.t
 
@@ -1052,7 +1052,8 @@ end = struct
       match db.kind with
       | Kind_db.Installed_libs -> Lib_external_deps.add name
       | _ -> ()
-    in resolve_name db name ~dir
+    in let open Memo.O in
+    let+ (status, _) = resolve_name db name ~dir in status
 
   let resolve_dep db (loc, name) ~dir ~private_deps : t Resolve.Memo.t =
     let open Memo.O in
@@ -1068,23 +1069,23 @@ end = struct
     db.resolve name >>= function
     | Redirect (db', (_, name')) ->
       let db' = Option.value db' ~default:db in
-      find_internal db' name' ~dir
-    | Found info -> instantiate db name info ~dir ~hidden:None
-    | Invalid e -> Memo.return (Status.Invalid e)
+      resolve_name db' name' ~dir
+    | Found info -> let+ status =  instantiate db name info ~dir ~hidden:None in (status,db.kind)
+    | Invalid e -> Memo.return (Status.Invalid e, db.kind)
     | Not_found ->
       let+ res =
         match db.parent with
-        | None -> Memo.return Status.Not_found
-        | Some db -> find_internal db name ~dir
+        | None -> Memo.return (Status.Not_found, db.kind)
+        | Some db -> resolve_name db name ~dir
       in
       res
     | Hidden { lib = info; reason = hidden; path = _ } -> (
       (match db.parent with
-      | None -> Memo.return Status.Not_found
-      | Some db -> find_internal db name ~dir)
+      | None -> Memo.return (Status.Not_found, db.kind)
+      | Some db -> resolve_name db name ~dir)
       >>= function
-      | Status.Found _ as x -> Memo.return x
-      | _ -> instantiate db name info ~dir ~hidden:(Some hidden))
+      | (Status.Found _, _) as x -> Memo.return x
+      | _ -> let+ status = instantiate db name info ~dir ~hidden:(Some hidden) in (status,db.kind))
 
   let available_internal db ~dir (name : Lib_name.t) =
     resolve_dep db (Loc.none, name) ~dir ~private_deps:Allow_all

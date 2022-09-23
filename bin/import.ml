@@ -33,6 +33,7 @@ module Log = Dune_util.Log
 module Dune_rpc = Dune_rpc_private
 module Graph = Dune_graph.Graph
 module Lib_external_deps = Dune_rules.Lib_external_deps
+module Scope = Dune_rules.Scope
 include Common.Let_syntax
 
 let in_group (t, info) = (Term.Group.Term t, info)
