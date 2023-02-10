@@ -523,6 +523,52 @@ module Opam_files = struct
            Dyn.Tuple [ String (Path.to_string opam_file); String contents ]))
 end
 
+module Actions = struct
+  include struct
+    open Dune_rules
+    module Dune_file = Dune_file
+  end
+
+  type t =
+    { src : Path.Source.t
+    ; kind : string
+    ; action : Dune_lang.Action.t
+    }
+
+  let to_dyn t =
+    let open Dyn in
+    let record =
+      record
+        [ ("src", Path.Source.to_dyn t.src)
+        ; ("action", Dune_lang.Action.to_dyn t.action)
+        ]
+    in
+    Variant (t.kind, [ record ])
+
+  let get (context : Context.t) (build_system : Dune_rules.Main.build_system) =
+    let { Dune_rules.Main.conf; contexts = _; _ } = build_system in
+    let open Memo.O in
+    let* dune_files =
+      Dune_rules.Dune_load.Dune_files.eval conf.dune_files ~context
+    in
+    let desc src kind action : t option =
+      match action with
+      | None -> None
+      | Some action -> Some { src; kind; action }
+    in
+    List.map dune_files ~f:(fun (dune_file : Dune_file.t) ->
+        List.map dune_file.stanzas ~f:(fun stanza ->
+            let dir = dune_file.dir in
+            match stanza with
+            | Dune_file.Tests tests -> desc dir "tests" tests.action
+            | Dune_file.Rule rule -> desc dir "rule" (Some (snd rule.action))
+            | Dune_file.Alias alias ->
+              desc dir "alias" (Option.map ~f:snd alias.action)
+            | _ -> None)
+        |> List.filter_opt)
+    |> List.concat |> Dyn.list to_dyn |> Memo.return
+end
+
 module External_lib_deps = struct
   include struct
     open Dune_rules
@@ -888,6 +934,7 @@ end
 module What = struct
   type t =
     | Workspace of { dirs : string list option }
+    | Actions
     | External_lib_deps
     | Opam_files
     | Entries
@@ -914,6 +961,10 @@ module What = struct
            later in the [describe] function. *)
         let dirs = if List.is_empty dirs then None else Some dirs in
         Workspace { dirs } )
+    ; ( "actions"
+      , []
+      , "prints information about the Actions defined by the user"
+      , return Actions )
     ; ( "opam-files"
       , []
       , "prints information about the Opam files that have been discovered"
@@ -971,6 +1022,7 @@ module What = struct
     | Opam_files -> Opam_files.get () |> some
     | Entries -> Entries.get super_context |> some
     | External_lib_deps -> External_lib_deps.get setup super_context |> some
+    | Actions -> Actions.get (Super_context.context super_context) setup |> some
     | Workspace { dirs } ->
       let context = Super_context.context super_context in
       let open Memo.O in
