@@ -63,6 +63,10 @@ module Section = Section
 module Subst_config = Subst_config
 module Dialect = Dialect
 
+module Entries = struct
+  let stanzas_to_entries = Install_rules.stanzas_to_entries
+end
+
 module Install_rules = struct
   let install_file = Install_rules.install_file
 end

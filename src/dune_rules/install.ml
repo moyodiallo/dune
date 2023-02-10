@@ -275,6 +275,26 @@ module Entry = struct
           | Some loc -> User loc)
       ; entry
       }
+
+    let to_dyn t =
+      let open Dyn in
+      let source = function
+        | Dune -> "dune"
+        | User _ -> "user"
+      in
+      let kind = function
+        | `File -> "file"
+        | `Directory -> "directory"
+      in
+      let record =
+        record
+          [ ("src", Path.Build.to_dyn t.entry.src)
+          ; ("kind", String (kind t.entry.kind))
+          ; ("dst", Dst.to_dyn t.entry.dst)
+          ; ("section", Section.to_dyn t.entry.section)
+          ]
+      in
+      Variant (source t.source, [ record ])
   end
 
   let compare compare_src { optional; src; dst; section; kind } t =

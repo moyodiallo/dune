@@ -111,6 +111,8 @@ module Entry : sig
       }
 
     val create : ?loc:Loc.t -> entry -> t
+
+    val to_dyn : t -> Dyn.t
   end
 
   val adjust_dst :

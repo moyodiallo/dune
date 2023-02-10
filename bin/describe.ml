@@ -723,6 +723,18 @@ module External_lib_deps = struct
     external_resolved_libs setup super_context >>| to_dyn context_name
 end
 
+module Entries = struct
+  let get super_context =
+    let open Memo.O in
+    let+ package_entries =
+      Dune_rules.Entries.stanzas_to_entries super_context
+    in
+    Package.Name.Map.to_dyn
+      (fun entries ->
+        Dyn.List (List.map ~f:Dune_rules.Install.Entry.Sourced.to_dyn entries))
+      package_entries
+end
+
 module Preprocess = struct
   let pp_with_ocamlc sctx project pp_file =
     let open Dune_engine in
@@ -838,6 +850,7 @@ module What = struct
     | Workspace of { dirs : string list option }
     | External_lib_deps
     | Opam_files
+    | Entries
     | Pp of string
 
   (** By default, describe the whole workspace *)
@@ -865,6 +878,10 @@ module What = struct
       , []
       , "prints information about the Opam files that have been discovered"
       , return Opam_files )
+    ; ( "entries"
+      , []
+      , "prints information about the entries per package"
+      , return Entries )
     ; ( "pp"
       , [ "FILE" ]
       , "builds a given FILE and prints the preprocessed output"
@@ -912,6 +929,7 @@ module What = struct
     let some = Memo.map ~f:(fun x -> Some x) in
     match t with
     | Opam_files -> Opam_files.get () |> some
+    | Entries -> Entries.get super_context |> some
     | External_lib_deps -> External_lib_deps.get setup super_context |> some
     | Workspace { dirs } ->
       let context = Super_context.context super_context in

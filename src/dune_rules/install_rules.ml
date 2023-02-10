@@ -1202,6 +1202,8 @@ let symlink_rules sctx ~dir =
     | None -> Rules.empty
     | Some rules -> Rules.of_dir_rules ~dir rules )
 
+let stanzas_to_entries = Stanzas_to_entries.stanzas_to_entries
+
 let gen_install_alias sctx (package : Package.t) =
   let ctx = Super_context.context sctx in
   let name = Package.name package in
