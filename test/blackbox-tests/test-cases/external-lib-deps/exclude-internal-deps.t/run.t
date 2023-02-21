@@ -8,9 +8,11 @@ print only the external libraries by dir.
      ((names (foo))
       (package ())
       (source_dir .)
-      (external_deps ((a required)))))
+      (external_deps ((a required)))
+      (internal_deps ((inter_lib required)))))
     (library
      ((names (inter_lib))
       (package ())
       (source_dir lib)
-      (external_deps ((a required)))))))
+      (external_deps ((a required)))
+      (internal_deps ())))))

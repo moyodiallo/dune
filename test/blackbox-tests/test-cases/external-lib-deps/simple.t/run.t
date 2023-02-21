@@ -13,4 +13,5 @@ external library dependencies of a simple project
      ((names (dummypkg))
       (package (dummypkg))
       (source_dir .)
-      (external_deps ((base required) (doesnotexist.foo required)))))))
+      (external_deps ((base required) (doesnotexist.foo required)))
+      (internal_deps ())))))

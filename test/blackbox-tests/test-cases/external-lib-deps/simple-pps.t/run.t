@@ -12,7 +12,8 @@ Expected: To get all required and pps packages
         (c________ required)
         (f________ required)
         (e________ required)
-        (d________ required)))))
+        (d________ required)))
+      (internal_deps ())))
     (executables
      ((names (prog))
       (package ())
@@ -20,4 +21,5 @@ Expected: To get all required and pps packages
       (external_deps
        ((h________ required)
         (i________ required)
-        (j________ required)))))))
+        (j________ required)))
+      (internal_deps ())))))
