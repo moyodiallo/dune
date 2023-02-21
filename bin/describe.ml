@@ -565,6 +565,14 @@ module External_lib_deps = struct
         | Executables -> "executables"
         | Library -> "library"
         | Tests -> "tests"
+
+      (* let is_library = function *)
+      (*   | Library -> true *)
+      (*   | Executables | Tests -> false *)
+
+      (* let is_executables = function *)
+      (*   | Executables -> true *)
+      (*   | Library | Tests -> false *)
     end
 
     type t =
@@ -703,7 +711,39 @@ module External_lib_deps = struct
         >>| List.concat)
     >>| List.concat
 
+  (* let map_private_items_lib items = *)
+  (*   let open Item in *)
+  (*   items *)
+  (*   |> List.filter ~f:(fun item -> *)
+  (*          Option.is_none item.package && Kind.is_library item.kind) *)
+  (*   |> List.map ~f:(fun item -> *)
+  (*          item.names *)
+  (*          |> List.map ~f:(fun name -> (Lib_name.of_string name, item))) *)
+  (*   |> List.concat |> Lib_name.Map.of_list_exn *)
+
+  (* let extand_exec_external_deps item items_map : Item.t = *)
+  (*   let open Item in *)
+  (*   let rec exec_external_deps lib_name items_map acc = *)
+  (*     match Lib_name.Map.find items_map lib_name with *)
+  (*     | None -> acc *)
+  (*     | Some { external_deps; internal_deps; kind; package; _ } -> *)
+  (*       if Option.is_none package && Item.Kind.is_library kind then *)
+  (*         internal_deps *)
+  (*         |> List.map ~f:(fun lib_dep -> *)
+  (*                exec_external_deps lib_dep.name items_map []) *)
+  (*         |> List.flatten |> List.append external_deps |> List.append acc *)
+  (*       else acc *)
+  (*   in *)
+  (*   item.internal_deps *)
+  (*   |> List.map ~f:(fun lib_dep -> exec_external_deps lib_dep.name items_map []) *)
+  (*   |> List.concat *)
+  (*   |> List.merge *)
+  (*        ~cmp:(fun x y -> Ordering.to_int (Lib_name.compare x.name y.name)) *)
+  (*        item.external_deps *)
+  (*   |> fun external_deps -> { item with external_deps } *)
+
   let external_resolved_libs setup super_context =
+    (* let open Item in *)
     let open Memo.O in
     let context = Super_context.context super_context in
     let* scope = Scope.DB.find_by_dir context.build_dir in
