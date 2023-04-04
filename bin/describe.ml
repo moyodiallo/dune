@@ -878,7 +878,7 @@ module What = struct
       , []
       , "prints information about the Opam files that have been discovered"
       , return Opam_files )
-    ; ( "entries"
+    ; ( "package-entries"
       , []
       , "prints information about the entries per package"
       , return Entries )
