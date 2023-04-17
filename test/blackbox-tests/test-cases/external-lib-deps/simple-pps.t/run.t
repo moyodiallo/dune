@@ -4,6 +4,7 @@ Expected: To get all required and pps packages
   (default
    ((library
      ((names (foo))
+      (extensions ())
       (package ())
       (source_dir .)
       (external_deps
@@ -16,6 +17,8 @@ Expected: To get all required and pps packages
       (internal_deps ())))
     (executables
      ((names (prog))
+      (extensions
+       (.bc .exe))
       (package ())
       (source_dir .)
       (external_deps

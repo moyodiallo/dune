@@ -574,6 +574,7 @@ module External_lib_deps = struct
       ; internal_deps : lib_dep list
       ; names : string list
       ; package : Package.t option
+      ; extensions : string list
       }
 
     let to_dyn t =
@@ -581,6 +582,7 @@ module External_lib_deps = struct
       let record =
         record
           [ ("names", (list string) t.names)
+          ; ("extensions", (list string) t.extensions)
           ; ( "package"
             , option Package.Name.to_dyn (Option.map ~f:Package.name t.package)
             )
@@ -642,25 +644,28 @@ module External_lib_deps = struct
              >>| List.concat)
     >>| List.concat
 
-  let resolve_libs db dir libraries preprocess names package kind =
+  let resolve_libs db dir libraries preprocess names package kind extensions =
     let open Memo.O in
     let open Item in
     let* lib_deps = resolve_lib_deps db libraries in
     let+ lib_pps = resolve_lib_pps db preprocess in
     let deps = lib_deps @ lib_pps in
-    let internal_deps =
-      deps
-      |> List.filter_map ~f:(function
-           | Local lib_dep -> Some lib_dep
-           | External _ -> None)
+    let internal_deps, external_deps =
+      List.rev deps
+      |> List.fold_left
+           ~f:(fun (int_deps, ext_deps) dep ->
+             match dep with
+             | Local lib -> (lib :: int_deps, ext_deps)
+             | External lib -> (int_deps, lib :: ext_deps))
+           ~init:([], [])
     in
-    let external_deps =
-      deps
-      |> List.filter_map ~f:(function
-           | External lib_dep -> Some lib_dep
-           | Local _ -> None)
-    in
-    { external_deps; internal_deps; kind; names; package; dir }
+    { external_deps; internal_deps; kind; names; package; dir; extensions }
+
+  let exes_extensions (ctx : Context.t) modes =
+    Dune_file.Executables.Link_mode.Map.to_list modes
+    |> List.map ~f:(fun (m, loc) ->
+           Dune_file.Executables.Link_mode.extension m ~loc
+             ~ext_obj:ctx.lib_config.ext_obj ~ext_dll:ctx.lib_config.ext_dll)
 
   let libs db (context : Context.t)
       (build_system : Dune_rules.Main.build_system) =
@@ -678,19 +683,21 @@ module External_lib_deps = struct
                 exes.buildable.preprocess
                 (List.map exes.names ~f:snd)
                 exes.package Item.Kind.Executables
+                (exes_extensions context exes.modes)
               >>| List.singleton
             | Dune_file.Library lib ->
               resolve_libs db dir lib.buildable.libraries
                 lib.buildable.preprocess
                 [ Dune_file.Library.best_name lib |> Lib_name.to_string ]
                 (Dune_file.Library.package lib)
-                Item.Kind.Library
+                Item.Kind.Library []
               >>| List.singleton
             | Dune_file.Tests tests ->
               resolve_libs db dir tests.exes.buildable.libraries
                 tests.exes.buildable.preprocess
                 (List.map tests.exes.names ~f:snd)
                 tests.exes.package Item.Kind.Tests
+                (exes_extensions context tests.exes.modes)
               >>| List.singleton
             | _ -> Memo.return [])
         >>| List.concat)
@@ -701,8 +708,7 @@ module External_lib_deps = struct
     let context = Super_context.context super_context in
     let* scope = Scope.DB.find_by_dir context.build_dir in
     let db = Scope.libs scope in
-    let+ items = libs db context setup in
-    items
+    libs db context setup
 
   let to_dyn context_name external_resolved_libs =
     let open Dyn in
