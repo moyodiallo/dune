@@ -727,7 +727,7 @@ module Entries = struct
   let get super_context =
     let open Memo.O in
     let+ package_entries =
-      Dune_rules.Entries.stanzas_to_entries super_context
+      Dune_rules.Install_rules.stanzas_to_entries super_context
     in
     Package.Name.Map.to_dyn
       (fun entries ->

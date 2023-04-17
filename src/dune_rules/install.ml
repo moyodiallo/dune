@@ -258,6 +258,22 @@ module Entry = struct
 
   let map_dst t ~f = { t with dst = f t.dst }
 
+  let to_dyn t =
+    let open Dyn in
+    let kind = function
+      | `File -> "file"
+      | `Directory -> "directory"
+    in
+    let record =
+      record
+        [ ("src", Path.Build.to_dyn t.src)
+        ; ("kind", String (kind t.kind))
+        ; ("dst", Dst.to_dyn t.dst)
+        ; ("section", Section.to_dyn t.section)
+        ]
+    in
+    ("entry", record)
+
   module Sourced = struct
     type source =
       | User of Loc.t
@@ -278,23 +294,11 @@ module Entry = struct
 
     let to_dyn t =
       let open Dyn in
-      let source = function
-        | Dune -> "dune"
-        | User _ -> "user"
+      let source_to_dyn = function
+        | Dune -> String "dune"
+        | User _ -> String "user"
       in
-      let kind = function
-        | `File -> "file"
-        | `Directory -> "directory"
-      in
-      let record =
-        record
-          [ ("src", Path.Build.to_dyn t.entry.src)
-          ; ("kind", String (kind t.entry.kind))
-          ; ("dst", Dst.to_dyn t.entry.dst)
-          ; ("section", Section.to_dyn t.entry.section)
-          ]
-      in
-      Variant (source t.source, [ record ])
+      Record [ ("source", source_to_dyn t.source); to_dyn t.entry ]
   end
 
   let compare compare_src { optional; src; dst; section; kind } t =
