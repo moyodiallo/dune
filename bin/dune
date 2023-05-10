@@ -63,6 +63,12 @@
 
 (install
  (section bin)
+ (package dune)
+ (files
+  (dune.exe as dune-lint)))
+
+(install
+ (section bin)
  (enabled_if
   (= %{profile} dune-bootstrap))
  (package dune)
