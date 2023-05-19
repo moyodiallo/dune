@@ -750,7 +750,7 @@ module External_lib_deps = struct
               resolve_libs db dir tests.exes.buildable.libraries
                 tests.exes.buildable.preprocess
                 (List.map tests.exes.names ~f:snd)
-                tests.exes.package Item.Kind.Tests
+                tests.package Item.Kind.Tests
                 (exes_extensions context tests.exes.modes)
               >>| List.singleton
             | _ -> Memo.return [])
