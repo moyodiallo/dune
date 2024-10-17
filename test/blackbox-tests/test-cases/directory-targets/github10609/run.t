@@ -20,5 +20,5 @@ properly promoted.
   > EOF
 
   $ dune build node_modules
-  $ ls node_modules
-  node-cmake
+  $ ls node_modules/node-cmake/node_modules/ansi-regex
+  index.js
